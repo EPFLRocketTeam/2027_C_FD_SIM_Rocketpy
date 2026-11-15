@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 from .widgets import ParameterFrame
+from integration import load_rocketpy_parameters
 
 
 class InputPanel(ttk.Frame):
@@ -12,6 +13,7 @@ class InputPanel(ttk.Frame):
     def __init__(self, parent):
         super().__init__(parent)
 
+        self.rocketpy_metadata = {}
         self.setup_variables()
         self.setup_ui()
 
@@ -28,6 +30,7 @@ class InputPanel(ttk.Frame):
         self.reefing_ratio = tk.DoubleVar(value=0.25)
         self.spill_hole_diameter = tk.DoubleVar(value=1.0)
         self.open_cd = tk.DoubleVar(value=1.7)
+        self.reefed_cd = tk.DoubleVar(value=1.6)
 
         # Environment parameters
         self.air_density = tk.DoubleVar(value=1.124)
@@ -46,12 +49,52 @@ class InputPanel(ttk.Frame):
 
     def setup_ui(self):
         """Setup the user interface"""
+        self.setup_source_selector()
         self.setup_rocket_parameters()
         self.setup_parachute_parameters()
         self.setup_flight_parameters()
         self.setup_environment_parameters()
         self.setup_simulation_parameters()
         self.setup_import_export_buttons()
+
+    def setup_source_selector(self):
+        """Show the active input source and make both input modes obvious."""
+        self.source_frame = ttk.LabelFrame(self, text="Input Source", padding=6)
+        self.source_frame.pack(fill=tk.X, pady=(0, 5))
+
+        self.input_source = tk.StringVar(value="Manual values")
+        self.source_label = ttk.Label(
+            self.source_frame,
+            textvariable=self.input_source,
+            wraplength=330,
+        )
+        self.source_label.pack(fill=tk.X, pady=(0, 5))
+
+        source_buttons = ttk.Frame(self.source_frame)
+        source_buttons.pack(fill=tk.X)
+        ttk.Button(
+            source_buttons,
+            text="Use Manual Values",
+            command=self.use_manual_values,
+        ).pack(side=tk.LEFT, padx=(0, 5))
+        ttk.Button(
+            source_buttons,
+            text="Load RocketPy Excel...",
+            command=self.import_rocketpy_excel,
+        ).pack(side=tk.LEFT)
+
+        self.specifications = tk.StringVar(value="No RocketPy workbook loaded.")
+        self.specifications_frame = ttk.LabelFrame(
+            self, text="RocketPy Specifications", padding=6
+        )
+        self.specifications_frame.pack(fill=tk.X, pady=(0, 5))
+        ttk.Label(
+            self.specifications_frame,
+            textvariable=self.specifications,
+            justify=tk.LEFT,
+            anchor="w",
+            wraplength=330,
+        ).pack(fill=tk.X)
 
     def setup_rocket_parameters(self):
         """Setup rocket parameter inputs"""
@@ -74,6 +117,7 @@ class InputPanel(ttk.Frame):
             "Spill Hole Diameter (m):", self.spill_hole_diameter
         )
         self.parachute_frame.add_parameter("Open Cd:", self.open_cd)
+        self.parachute_frame.add_parameter("Reefed Cd:", self.reefed_cd)
 
     def setup_environment_parameters(self):
         """Setup environment parameter inputs"""
@@ -153,6 +197,7 @@ class InputPanel(ttk.Frame):
             "parachute": {
                 "projected_diameter": self.parachute_diameter.get(),
                 "open_Cd": self.open_cd.get(),
+                "reefed_Cd": self.reefed_cd.get(),
                 "reefing_ratio": self.reefing_ratio.get(),
                 "spill_hole_diameter": self.spill_hole_diameter.get(),
                 "opening_time": self.opening_time.get(),
@@ -191,6 +236,8 @@ class InputPanel(ttk.Frame):
                 self.parachute_diameter.set(parachute["projected_diameter"])
             if "open_Cd" in parachute:
                 self.open_cd.set(parachute["open_Cd"])
+            if "reefed_Cd" in parachute and parachute["reefed_Cd"] is not None:
+                self.reefed_cd.set(parachute["reefed_Cd"])
             if "reefing_ratio" in parachute:
                 self.reefing_ratio.set(parachute["reefing_ratio"])
             if "spill_hole_diameter" in parachute:
@@ -216,6 +263,8 @@ class InputPanel(ttk.Frame):
                 self.first_altitude.set(sim["first_altitude"])
             if "second_altitude" in sim:
                 self.second_altitude.set(sim["second_altitude"])
+            if "launch_angle" in sim:
+                self.launch_angle.set(sim["launch_angle"])
             if "time_step" in sim:
                 self.time_step.set(sim["time_step"])
             if "max_time" in sim:
@@ -311,6 +360,86 @@ class InputPanel(ttk.Frame):
             messagebox.showerror(
                 "Import Error", f"Failed to import parameters: {str(e)}"
             )
+
+    def import_rocketpy_excel(self):
+        """Import the existing RocketPy_27 workbook without modifying it."""
+        try:
+            filename = filedialog.askopenfilename(
+                filetypes=[("Excel workbooks", "*.xlsx *.xlsm"), ("All files", "*.*")],
+                title="Import RocketPy Excel Workbook",
+            )
+            if not filename:
+                return
+            workbook = load_rocketpy_parameters(filename)
+            self.set_parameters(workbook.splat_parameters)
+            self.rocketpy_metadata = workbook.splat_parameters.get("rocketpy", {})
+            self.input_source.set(f"RocketPy Excel: {filename}")
+            self.update_rocketpy_specifications()
+            messagebox.showinfo(
+                "RocketPy Import Successful",
+                "Rocket and trajectory values were imported from the workbook.\n"
+                "The original Excel file was not modified.",
+            )
+        except Exception as e:
+            messagebox.showerror(
+                "RocketPy Import Error", f"Failed to import workbook: {e}"
+            )
+
+    def use_manual_values(self):
+        """Switch the source label back to manual editing without clearing values."""
+        self.input_source.set("Manual values (editable UI fields)")
+        self.rocketpy_metadata = {}
+        self.specifications.set(
+            "No RocketPy workbook loaded. Current fields are manual."
+        )
+
+    def update_rocketpy_specifications(self):
+        """Render the imported RocketPy summary next to the editable inputs."""
+        metadata = self.rocketpy_metadata
+        source = metadata.get("source", "")
+        source_name = source.replace("\\", "/").rsplit("/", 1)[-1]
+        params = self.get_parameters()
+        rocket = params["rocket"]
+        parachute = params["parachute"]
+        environment = params["environment"]
+        simulation = params["simulation"]
+        lines = [
+            f"Workbook: {source_name}",
+            f"Rocket mass: {rocket['mass']:.3f} kg",
+            f"Rocket diameter: {rocket['diameter']:.3f} m",
+            f"Rocket Cd: {rocket['drag_coefficient']:.3f}",
+            f"Parachute diameter: {parachute['projected_diameter']:.3f} m",
+            f"Parachute Cd (open / reefed): {parachute['open_Cd']:.3f} / {parachute['reefed_Cd']:.3f}",
+            f"Reefing ratio / opening time: {parachute['reefing_ratio']:.3f} / {parachute['opening_time']:.3f} s",
+            f"Air density / gravity: {environment['air_density']:.3f} kg/m³ / {environment['gravity']:.3f} m/s²",
+            f"Events: {simulation['type']}; {simulation['first_altitude']:.1f} m / {simulation['second_altitude']:.1f} m",
+            (
+                f"Apogee AGL: {metadata.get('apogee_agl', '—'):.1f} m"
+                if isinstance(metadata.get("apogee_agl"), (int, float))
+                else "Apogee AGL: —"
+            ),
+            (
+                f"Apogee ASL: {metadata.get('apogee_asl', '—'):.1f} m"
+                if isinstance(metadata.get("apogee_asl"), (int, float))
+                else "Apogee ASL: —"
+            ),
+            (
+                f"Max velocity: {metadata.get('max_speed', '—'):.1f} m/s"
+                if isinstance(metadata.get("max_speed"), (int, float))
+                else "Max velocity: —"
+            ),
+            (
+                f"Max acceleration: {metadata.get('max_acceleration', '—'):.1f} m/s²"
+                if isinstance(metadata.get("max_acceleration"), (int, float))
+                else "Max acceleration: —"
+            ),
+            (
+                f"Rail exit velocity: {metadata.get('rail_exit_velocity', '—'):.1f} m/s"
+                if isinstance(metadata.get("rail_exit_velocity"), (int, float))
+                else "Rail exit velocity: —"
+            ),
+        ]
+        self.specifications.set("\n".join(lines))
 
     def validate_parameters(self):
         """Validate all parameters and return any errors"""

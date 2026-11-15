@@ -10,12 +10,14 @@ class ParachuteModel(ABC):
         reefing_ratio=None,
         spill_hole_diameter=None,
         opening_time=8,
+        reefed_Cd_override=None,
     ):
         self.projected_diameter = projected_diameter
         self.open_Cd = open_Cd
         self.reefing_ratio = reefing_ratio
         self.spill_hole_diameter = spill_hole_diameter
         self.opening_time = opening_time
+        self.reefed_Cd_override = reefed_Cd_override
 
     @property
     @abstractmethod
@@ -28,6 +30,8 @@ class ParachuteModel(ABC):
 
     @property
     def reefed_Cd(self):
+        if self.reefed_Cd_override is not None:
+            return self.reefed_Cd_override
         if self.reefing_ratio is not None:
             return (
                 self.drag_area_ratio

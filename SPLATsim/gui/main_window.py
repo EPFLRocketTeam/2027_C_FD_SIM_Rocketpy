@@ -167,6 +167,7 @@ class ParachuteSimulationGUI:
                 reefing_ratio=params["parachute"]["reefing_ratio"],
                 spill_hole_diameter=params["parachute"]["spill_hole_diameter"],
                 opening_time=params["parachute"]["opening_time"],
+                reefed_Cd_override=params["parachute"].get("reefed_Cd"),
             )
 
             # Create rocket model
@@ -188,6 +189,8 @@ class ParachuteSimulationGUI:
                     time_step=params["simulation"]["time_step"],
                     max_time=params["simulation"]["max_time"],
                     launch_angle=params["simulation"]["launch_angle"],
+                    air_density=params["environment"]["air_density"],
+                    gravity=params["environment"]["gravity"],
                 )
             else:
                 simulation = SingleEventSimulation(
@@ -198,6 +201,8 @@ class ParachuteSimulationGUI:
                     time_step=params["simulation"]["time_step"],
                     max_time=params["simulation"]["max_time"],
                     launch_angle=params["simulation"]["launch_angle"],
+                    air_density=params["environment"]["air_density"],
+                    gravity=params["environment"]["gravity"],
                 )
 
             # Run simulation
@@ -250,6 +255,7 @@ class ParachuteSimulationGUI:
         self.input_panel.reefing_ratio.set(0.25)
         self.input_panel.spill_hole_diameter.set(1.0)
         self.input_panel.open_cd.set(1.7)
+        self.input_panel.reefed_cd.set(1.6)
 
         self.input_panel.air_density.set(1.124)
         self.input_panel.gravity.set(9.81)
@@ -260,6 +266,7 @@ class ParachuteSimulationGUI:
         self.input_panel.time_step.set(0.001)
         self.input_panel.max_time.set(300.0)
         self.input_panel.reefed.set(True)
+        self.input_panel.use_manual_values()
 
         # Update UI
         self.input_panel.on_sim_type_change()

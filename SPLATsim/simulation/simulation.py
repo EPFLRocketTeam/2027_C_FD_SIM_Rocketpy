@@ -17,6 +17,8 @@ class SimulationEngine(ABC):
         max_time=300,
         drift_time_step=1,
         launch_angle=90,
+        air_density=None,
+        gravity=None,
     ):
         # --- Configuration / Input parameters ---
         self.rocket = rocket
@@ -26,6 +28,10 @@ class SimulationEngine(ABC):
         self.time_step = time_step
         self.max_time = max_time
         self.launch_angle = launch_angle * math.pi / 180
+        if air_density is not None:
+            self.AIR_DENSITY = air_density
+        if gravity is not None:
+            self.GRAVITY = -abs(gravity)
 
         # --- Initial state ---
         self.altitude = None  # to be set in derived classes
