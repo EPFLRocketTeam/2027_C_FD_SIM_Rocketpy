@@ -1,11 +1,9 @@
-# 2026_C_FD_SIM_Rocketpy
+# 2027_C_FD_SIM_Rocketpy
 
 ## FD Rocketpy
 # Euroc Simulations
 TODO:
-# Excel
-TODO:
-# RocketPy_26
+# RocketPy_27
 TODO:
 # Genetic Algorithm
 
