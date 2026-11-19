@@ -906,6 +906,13 @@ _MC_STRUCT_FIN_FIELDS = ["env_fins", "rc_fins", "tc_fins", "sweep_l_fins"]
 # a gusty vertical wind profile — RocketPy interpolates linearly between them.
 WIND_GUST_ALTITUDES = [0, 300, 800, 1500, 2500, 4000, 6000]
 
+# Rotation du vent avec l'altitude (spirale d'Ekman simplifiée) :
+# rotation(z) = total * (1 - exp(-z / h))
+EKMAN_ROTATION_MEAN_DEG = 20.0   # rotation totale moyenne (°)
+EKMAN_ROTATION_STD_DEG = 8.0
+EKMAN_H_MEAN_M = 300.0           # échelle de rotation (≈ épaisseur couche limite / 3)
+EKMAN_H_STD_M = 80.0
+
 # Sensible default (± range %, step %) per variable — thrust/Isp typically
 # vary much less run-to-run than e.g. drag or wind.
 DEFAULT_MC_RANGES = {
@@ -938,11 +945,19 @@ def sample_wind_profile(wind_base_speed, gusty, grid, rng):
     other Monte Carlo variables) and its own random direction (0–360°),
     simulating gusts that change as the rocket climbs."""
     profile = []
+    if gusty:
+        # Tirés UNE seule fois par vol
+        dir_ground = float(rng.uniform(0, 360))
+        rot_total = float(
+            np.clip(rng.normal(EKMAN_ROTATION_MEAN_DEG, EKMAN_ROTATION_STD_DEG), 0, 60)
+        )
+        h = float(np.clip(rng.normal(EKMAN_H_MEAN_M, EKMAN_H_STD_M), 100, 800))
     for alt in WIND_GUST_ALTITUDES:
         if gusty:
             f = _mc_sample_pct(rng, grid) / 100.0
             speed = max(wind_base_speed * (1 + f), 0.0)
-            direction = float(rng.uniform(0, 360))
+            rotation = rot_total * (1.0 - math.exp(-alt / h))
+            direction = float((dir_ground - rotation) % 360.0)
         else:
             speed = wind_base_speed
             direction = 0.0
