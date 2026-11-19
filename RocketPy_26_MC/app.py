@@ -913,6 +913,13 @@ EKMAN_ROTATION_STD_DEG = 8.0
 EKMAN_H_MEAN_M = 300.0           # échelle de rotation (≈ épaisseur couche limite / 3)
 EKMAN_H_STD_M = 80.0
 
+# Loi de puissance du vent : v(z) = v_ref * (min(z, H) / Z_REF)^alpha
+# v_ref (wind_base_speed) est supposée mesurée à Z_REF = 10 m.
+WIND_ALPHA = 0.15          # exposant de cisaillement (0.10 mer … 0.25 campagne arborée)
+WIND_Z_REF_M = 10.0        # hauteur de mesure de wind_base_speed
+WIND_H_CAP_M = 1000.0      # au-dessus (couche limite), la vitesse moyenne ne croît plus
+WIND_CORR_LENGTH_M = 1000.0  # longueur de corrélation verticale L des fluctuations
+
 # Sensible default (± range %, step %) per variable — thrust/Isp typically
 # vary much less run-to-run than e.g. drag or wind.
 DEFAULT_MC_RANGES = {
@@ -935,15 +942,16 @@ def _mc_sample_pct(rng, grid) -> float:
     x = rng.normal(0, sigma)
     return float(np.clip(x, -max_pct, max_pct))
 
-
 def sample_wind_profile(wind_base_speed, gusty, grid, rng):
     """Builds a (altitude_m, speed_m/s, direction_deg) profile.
     If gusty=False, returns a flat, non-random profile (constant speed,
     direction 0°) — used as the deterministic reference/baseline wind so
-    it stays comparable across runs. If gusty=True, each altitude layer
-    gets its own speed (sampled from `grid`, same ± range/step as the
-    other Monte Carlo variables) and its own random direction (0–360°),
-    simulating gusts that change as the rocket climbs."""
+    it stays comparable across runs. If gusty=True:
+    - speed: mean profile follows a power law with altitude, times a
+      random relative fluctuation correlated between neighbouring layers
+      (AR(1) in altitude, correlation length WIND_CORR_LENGTH_M);
+    - direction: one ground direction per flight, rotating smoothly with
+      altitude (simplified Ekman spiral)."""
     profile = []
     if gusty:
         # Tirés UNE seule fois par vol
@@ -952,10 +960,24 @@ def sample_wind_profile(wind_base_speed, gusty, grid, rng):
             np.clip(rng.normal(EKMAN_ROTATION_MEAN_DEG, EKMAN_ROTATION_STD_DEG), 0, 60)
         )
         h = float(np.clip(rng.normal(EKMAN_H_MEAN_M, EKMAN_H_STD_M), 100, 800))
+        f_prev = None  # fluctuation relative du palier précédent
+        alt_prev = None
     for alt in WIND_GUST_ALTITUDES:
         if gusty:
-            f = _mc_sample_pct(rng, grid) / 100.0
-            speed = max(wind_base_speed * (1 + f), 0.0)
+            # Fluctuation relative f, corrélée avec le palier du dessous
+            f_new = _mc_sample_pct(rng, grid) / 100.0
+            if f_prev is None:
+                f = f_new
+            else:
+                rho = math.exp(-(alt - alt_prev) / WIND_CORR_LENGTH_M)
+                f = rho * f_prev + math.sqrt(1.0 - rho**2) * f_new
+            f_prev, alt_prev = f, alt
+
+            # Vitesse moyenne : loi de puissance, plafonnée à H, plancher à Z_REF
+            z_eff = min(max(alt, WIND_Z_REF_M), WIND_H_CAP_M)
+            mean_speed = wind_base_speed * (z_eff / WIND_Z_REF_M) ** WIND_ALPHA
+            speed = max(mean_speed * (1.0 + f), 0.0)
+
             rotation = rot_total * (1.0 - math.exp(-alt / h))
             direction = float((dir_ground - rotation) % 360.0)
         else:
@@ -963,7 +985,6 @@ def sample_wind_profile(wind_base_speed, gusty, grid, rng):
             direction = 0.0
         profile.append((float(alt), speed, direction))
     return profile
-
 
 def apply_mc_perturbation(
     base_structure,
