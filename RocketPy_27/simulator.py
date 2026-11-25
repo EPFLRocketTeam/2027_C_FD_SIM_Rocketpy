@@ -252,7 +252,9 @@ m_lox_unused = prop.m_lox_unused
 m_lox_density = prop.m_lox_density
 m_pg_lox_tank_density = prop.m_pg_lox_tank_density
 m_pg_eth_tank_density = prop.m_pg_eth_tank_density
-m_pg = prop.m_pg
+m_pg = prop.m_pg_lox_copv_density * copv_volume
+m_pg_lox_copv_density = prop.m_pg_lox_copv_density
+m_pg_eth_copv_density = prop.m_pg_eth_copv_density
 hold_time = prop.hold_time
 prechill_time = prop.prechill_time
 ignition_delay = prop.ignition_delay
@@ -1837,7 +1839,8 @@ lox = Fluid(name="Lox", density=m_lox_density)
 ethanol = Fluid(name="Ethanol", density=m_eth_density)
 pressurizing_gas_lox = Fluid(name="Pressurizing gas lox ullage", density=m_pg_lox_tank_density)
 pressurizing_gas_ethanol = Fluid(name="Pressurizing gas eth ullage", density=m_pg_eth_tank_density)
-pressurizing_gas = Fluid(name="COPV lox gas", density=m_pg / copv_volume)
+pressurizing_gas_lox_copv = Fluid(name="COPV lox gas", density=m_pg_lox_copv_density)
+pressurizing_gas_eth_copv = Fluid(name="COPV eth gas", density=m_pg_eth_copv_density)
 
 # ============================================================
 # Tanks: height derived from volume, radius, and cap selection.
@@ -1933,8 +1936,8 @@ pressure_tank_lox = MassBasedTank(
     liquid_mass=0,
     flux_time=t_end,
     gas_mass=copv_lox_mass,
-    gas=pressurizing_gas,
-    liquid=pressurizing_gas,
+    gas=pressurizing_gas_lox_copv,
+    liquid=pressurizing_gas_lox_copv,
 )
 
 pressure_tank_eth = MassBasedTank(
@@ -1943,8 +1946,8 @@ pressure_tank_eth = MassBasedTank(
     liquid_mass=0,
     flux_time=t_end,
     gas_mass=copv_eth_mass,
-    gas=pressurizing_gas,
-    liquid=pressurizing_gas,
+    gas=pressurizing_gas_eth_copv,
+    liquid=pressurizing_gas_eth_copv,
 )
 
 
@@ -2331,3 +2334,5 @@ else:
 
 # Open the first figure; use its Previous and Next buttons to browse all plots.
 FIGURE_NAVIGATOR.show_first_figure()
+
+print(f"ICI : {m_pg_eth_tank_density}")
