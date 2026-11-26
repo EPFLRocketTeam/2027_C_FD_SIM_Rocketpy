@@ -48,12 +48,12 @@ class Propellant:
 
     # PRESSURIZING GAS
 
-    pressurizing_gas: str = "N2" # "N2" or "He"
-    pg_lox_tank_temperature: float = 178.15 # K
-    pg_eth_tank_temperature: float = 293.15 # K
-    pg_lox_copv_pressure: float = 300e5 # Pa
-    pg_eth_copv_pressure: float = 300e5 # Pa
-    pg_copv_temperature: float = 293.15 # K
+    pressurizing_gas: str = "N2"  # "N2" or "He"
+    pg_lox_tank_temperature: float = 178.15  # K
+    pg_eth_tank_temperature: float = 293.15  # K
+    pg_lox_copv_pressure: float = 300e5  # Pa
+    pg_eth_copv_pressure: float = 300e5  # Pa
+    pg_copv_temperature: float = 293.15  # K
 
     # MASS
 
@@ -122,23 +122,21 @@ class Propellant:
             )
         gas_type = gas_names[key]
 
-
         self.m_pg_lox_tank_density = PropsSI(
             "D", "T", self.pg_lox_tank_temperature, "P", self.lox_pressure, gas_type
         )
 
         self.m_pg_eth_tank_density = PropsSI(
             "D", "T", self.pg_eth_tank_temperature, "P", self.eth_pressure, gas_type
-        ) 
+        )
 
         self.m_pg_lox_copv_density = PropsSI(
-             "D", "T", self.pg_copv_temperature, "P", self.pg_lox_copv_pressure, gas_type
-        ) 
+            "D", "T", self.pg_copv_temperature, "P", self.pg_lox_copv_pressure, gas_type
+        )
 
         self.m_pg_eth_copv_density = PropsSI(
-             "D", "T", self.pg_copv_temperature, "P", self.pg_eth_copv_pressure, gas_type
-        ) 
-
+            "D", "T", self.pg_copv_temperature, "P", self.pg_eth_copv_pressure, gas_type
+        )
 
 
 def _try_to_float(value) -> float | None:

@@ -16,6 +16,7 @@ it.
 # ============================================================
 import sys
 import os
+from pathlib import Path
 
 sys.path.append(os.path.join(os.getcwd(), "..", "Excel"))
 
@@ -74,7 +75,7 @@ class FigureNavigator:
         self.image_artist.set_data(self.images[self.current_index])
         self.viewer_figure.canvas.draw_idle()
 
-    def show_first_figure(self):
+    def show_first_figure(self, splatsim_callback=None):
         """Open the persistent viewer with the first generated plot."""
         if not self.figures:
             return
@@ -96,7 +97,13 @@ class FigureNavigator:
         next_button = Button(next_axes, "Next →")
         previous_button.on_clicked(lambda _event: self.show_relative(-1))
         next_button.on_clicked(lambda _event: self.show_relative(1))
-        self.viewer_figure._navigation_controls = (previous_button, next_button)
+        controls = [previous_button, next_button]
+        if splatsim_callback is not None:
+            splatsim_axes = self.viewer_figure.add_axes([0.43, 0.015, 0.20, 0.045])
+            splatsim_button = Button(splatsim_axes, "Run SPLATsim")
+            splatsim_button.on_clicked(lambda _event: splatsim_callback())
+            controls.append(splatsim_button)
+        self.viewer_figure._navigation_controls = tuple(controls)
         plt.show()
 
     @staticmethod
@@ -1837,8 +1844,12 @@ ethanol_tank_ullage = Function(
 # ============================================================
 lox = Fluid(name="Lox", density=m_lox_density)
 ethanol = Fluid(name="Ethanol", density=m_eth_density)
-pressurizing_gas_lox = Fluid(name="Pressurizing gas lox ullage", density=m_pg_lox_tank_density)
-pressurizing_gas_ethanol = Fluid(name="Pressurizing gas eth ullage", density=m_pg_eth_tank_density)
+pressurizing_gas_lox = Fluid(
+    name="Pressurizing gas lox ullage", density=m_pg_lox_tank_density
+)
+pressurizing_gas_ethanol = Fluid(
+    name="Pressurizing gas eth ullage", density=m_pg_eth_tank_density
+)
 pressurizing_gas_lox_copv = Fluid(name="COPV lox gas", density=m_pg_lox_copv_density)
 pressurizing_gas_eth_copv = Fluid(name="COPV eth gas", density=m_pg_eth_copv_density)
 
@@ -2333,6 +2344,10 @@ else:
 
 
 # Open the first figure; use its Previous and Next buttons to browse all plots.
-FIGURE_NAVIGATOR.show_first_figure()
+from splatsim_parachute import run_splatsim_parachute
+
+FIGURE_NAVIGATOR.show_first_figure(
+    splatsim_callback=lambda: run_splatsim_parachute(Path(FILE).resolve())
+)
 
 print(f"ICI : {m_pg_eth_tank_density}")
