@@ -11,6 +11,16 @@ must already exist and be named "{version}_SIM.xlsx" so write_to_file can update
 it.
 """
 
+# The data directory is inferred from FILE below. Change FILE for each run; its
+# containing directory becomes the output directory for generated
+# files(.eng, .csv, .png, "{version}_SIM.xlsx").
+# The TEMPLATE_SIM.xlsx file remains at the code level and is never modified.
+#
+# Example: create a directory named "v1" containing a copy of the template,
+# rename it to "v1.xlsx", and set FILE = "v1/v1.xlsx" below.
+FILE = "TEMPLATE_SIM/TEMPLATE_SIM.xlsx"  # CHANGE : path to your working Excel file.
+
+
 # ============================================================
 # Imports
 # ============================================================
@@ -157,15 +167,6 @@ try:
 except NameError:
     pass
 
-# The data directory is inferred from FILE below. Change FILE for each run; its
-# containing directory becomes the output directory for generated
-# files(.eng, .csv, .png, "{version}_SIM.xlsx").
-# The TEMPLATE_SIM.xlsx file remains at the code level and is never modified.
-#
-# Example: create a directory named "v1" containing a copy of the template,
-# rename it to "v1.xlsx", and set FILE = "v1/v1.xlsx" below.
-FILE = "EuRoC_rapport/EuRoC_rapport.xlsx"  # CHANGE : path to your working Excel file.
-
 DATA_DIR = os.path.dirname(os.path.abspath(FILE)) or "."
 os.makedirs(DATA_DIR, exist_ok=True)
 
@@ -252,7 +253,7 @@ m_lox_unused = prop.m_lox_unused
 m_lox_density = prop.m_lox_density
 m_pg_lox_tank_density = prop.m_pg_lox_tank_density
 m_pg_eth_tank_density = prop.m_pg_eth_tank_density
-m_pg = prop.m_pg_lox_copv_density * copv_volume
+m_pg = prop.m_pg
 m_pg_lox_copv_density = prop.m_pg_lox_copv_density
 m_pg_eth_copv_density = prop.m_pg_eth_copv_density
 hold_time = prop.hold_time
@@ -922,6 +923,10 @@ m_ox_total = m_ox_boil_off + m_ox_prechill + m_ox_ignition + free_ox + m_ox_unus
 
 # Two identical COPVs
 m_pg_copv = m_pg
+
+# Calculate density of pressurizing gas in the copv for physical coherence
+m_pg_lox_copv_density = m_pg_copv / copv_volume
+m_pg_eth_copv_density = m_pg_copv / copv_volume
 
 
 m_wet = m_dry + m_fuel_total + m_ox_total + 2.0 * m_pg_copv
