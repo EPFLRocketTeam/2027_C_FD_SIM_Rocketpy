@@ -15,6 +15,7 @@ SHEET_NAME = "Propellant "  # note: trailing space in the Excel sheet name
 NAME_COLUMN = "A"
 VALUE_COLUMN = "B"
 FIRST_DATA_ROW = 2
+STRING_FIELDS = {"thrust_curve_mode", "pressurizing_gas"}
 
 
 @dataclass
@@ -26,7 +27,7 @@ class Propellant:
     total_impulse: float = 40500.0
 
     # THRUST CURVE MODEL
-    thrust_curve_mode: str = "constant"  # "constant" ou "peaked"
+    thrust_curve_mode: str = "constant"  # "constant" or "peaked"
     derated_thrust: float = (
         0.0  # [N] post-peak plateau, used only in "peaked" mode;
         # 0 defaults to 85% of the peak thrust.
@@ -45,6 +46,15 @@ class Propellant:
     eth_cutoff: float = 2.29321782
     eth_frac_cooling: float = 0.075
 
+    # PRESSURIZING GAS
+
+    pressurizing_gas: str = "N2" # "N2" or "He"
+    pg_lox_tank_temperature: float = 178.15 # K
+    pg_eth_tank_temperature: float = 293.15 # K
+    pg_lox_copv_pressure: float = 300e5 # Pa
+    pg_eth_copv_pressure: float = 300e5 # Pa
+    pg_copv_temperature: float = 293.15 # K
+
     # MASS
 
     lox_temperature: float = 90.15  # K
@@ -57,10 +67,14 @@ class Propellant:
     # will be calculated after
     m_lox_density: float = field(init=False, default=1154)
     m_eth_density: float = field(init=False, default=810)
+    m_pg_lox_tank_density: float = field(init=False, default=113)
+    m_pg_eth_tank_density: float = field(init=False, default=68)
+    m_pg_lox_copv_density: float = field(init=False, default=68)
+    m_pg_eth_copv_density: float = field(init=False, default=68)
 
     m_eth_unused: float = 0.405
     m_lox_unused: float = 0.577
-    m_n2: float = 2.605
+    m_pg: float = 2.605
 
     # TIME
     hold_time: float = 300.0
@@ -97,6 +111,34 @@ class Propellant:
         self.m_eth_density = PropsSI(
             "D", "T", self.eth_temperature, "P", self.eth_pressure, fuel
         )
+
+        # pressurant gas
+        gas_names = {"N2": "Nitrogen", "HE": "Helium"}
+        key = self.pressurizing_gas.strip().upper()
+        if key not in gas_names:
+            raise ValueError(
+                f"Invalid pressurizing_gas {self.pressurizing_gas!r}. "
+                "Expected 'N2' or 'He'."
+            )
+        gas_type = gas_names[key]
+
+
+        self.m_pg_lox_tank_density = PropsSI(
+            "D", "T", self.pg_lox_tank_temperature, "P", self.lox_pressure, gas_type
+        )
+
+        self.m_pg_eth_tank_density = PropsSI(
+            "D", "T", self.pg_eth_tank_temperature, "P", self.eth_pressure, gas_type
+        ) 
+
+        self.m_pg_lox_copv_density = PropsSI(
+             "D", "T", self.pg_copv_temperature, "P", self.pg_lox_copv_pressure, gas_type
+        ) 
+
+        self.m_pg_eth_copv_density = PropsSI(
+             "D", "T", self.pg_copv_temperature, "P", self.pg_eth_copv_pressure, gas_type
+        ) 
+
 
 
 def _try_to_float(value) -> float | None:
@@ -145,8 +187,9 @@ def read_propellant(filepath: str | Path, sheet_name: str = SHEET_NAME) -> Prope
             continue
         raw = ws.cell(row=row, column=value_col_idx).value
 
-        if name == "thrust_curve_mode" and isinstance(raw, str):
-            file_values[name] = raw.strip().lower()
+        if name in STRING_FIELDS and isinstance(raw, str):
+            value = raw.strip()
+            file_values[name] = value.lower() if name == "thrust_curve_mode" else value
             continue
 
         parsed = _try_to_float(raw)

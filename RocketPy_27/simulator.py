@@ -250,7 +250,11 @@ m_eth_unused = prop.m_eth_unused
 m_eth_density = prop.m_eth_density
 m_lox_unused = prop.m_lox_unused
 m_lox_density = prop.m_lox_density
-m_n2 = prop.m_n2
+m_pg_lox_tank_density = prop.m_pg_lox_tank_density
+m_pg_eth_tank_density = prop.m_pg_eth_tank_density
+m_pg = prop.m_pg_lox_copv_density * copv_volume
+m_pg_lox_copv_density = prop.m_pg_lox_copv_density
+m_pg_eth_copv_density = prop.m_pg_eth_copv_density
 hold_time = prop.hold_time
 prechill_time = prop.prechill_time
 ignition_delay = prop.ignition_delay
@@ -917,10 +921,10 @@ m_fuel_total = m_fuel_ignition + free_fuel + m_fuel_unused
 m_ox_total = m_ox_boil_off + m_ox_prechill + m_ox_ignition + free_ox + m_ox_unused
 
 # Two identical COPVs
-m_n2_copv = m_n2
+m_pg_copv = m_pg
 
 
-m_wet = m_dry + m_fuel_total + m_ox_total + 2.0 * m_n2_copv
+m_wet = m_dry + m_fuel_total + m_ox_total + 2.0 * m_pg_copv
 
 
 nominal_total_impulse = total_impulse
@@ -1717,51 +1721,45 @@ t_end = t_flight[-1]  # Full burn duration after hold-down break
 
 
 # ============================================================
-# Pressurant N2
+# Pressurizing gas
 # ============================================================
 
-# TODO: look into https://coolprop.org/fluid_properties/fluids/Nitrogen.html
-rho_n2_lox_tank = 6000000.0 * 0.028 / (8.314 * 178.15)
+# pressurizing gas present in the propellant tank ullages during flight
+m_pg_lox_ullage = m_pg_lox_tank_density * ullage_lox_flight_m3
 
-rho_n2_ethanol_tank = 6000000.0 * 0.028 / (8.314 * 293.15)
-
-
-# N2 present in the propellant tank ullages during flight
-m_n2_lox_ullage = rho_n2_lox_tank * ullage_lox_flight_m3
-
-m_n2_ethanol_ullage = rho_n2_ethanol_tank * ullage_fuel_flight_m3
+m_pg_ethanol_ullage = m_pg_eth_tank_density * ullage_fuel_flight_m3
 
 
 # ============================================================
 # COPV
 # ============================================================
 
-m_copv_initial = m_n2_copv
+m_copv_initial = m_pg_copv
 
-m_copv_lox_vs_time = m_n2_copv - m_n2_lox_ullage
+m_copv_lox_vs_time = m_pg_copv - m_pg_lox_ullage
 
-m_copv_eth_vs_time = m_n2_copv - m_n2_ethanol_ullage
+m_copv_eth_vs_time = m_pg_copv - m_pg_ethanol_ullage
 
 
 if np.any(m_copv_lox_vs_time < 0.0):
-    required = np.max(m_n2_lox_ullage)
+    required = np.max(m_pg_lox_ullage)
 
     raise ValueError(
-        "LOX COPV does not contain enough N2 to maintain "
+        "LOX COPV does not contain enough pressurant gas to maintain "
         "the assumed 6 MPa ullage condition. "
         f"Required: {required:.4f} kg, "
-        f"available: {m_n2_copv:.4f} kg."
+        f"available: {m_pg_copv:.4f} kg."
     )
 
 
 if np.any(m_copv_eth_vs_time < 0.0):
-    required = np.max(m_n2_ethanol_ullage)
+    required = np.max(m_pg_ethanol_ullage)
 
     raise ValueError(
-        "Fuel COPV does not contain enough N2 to maintain "
+        "Fuel COPV does not contain enough pressurant gas to maintain "
         "the assumed 6 MPa ullage condition. "
         f"Required: {required:.4f} kg, "
-        f"available: {m_n2_copv:.4f} kg."
+        f"available: {m_pg_copv:.4f} kg."
     )
 
 
@@ -1839,10 +1837,10 @@ ethanol_tank_ullage = Function(
 # ============================================================
 lox = Fluid(name="Lox", density=m_lox_density)
 ethanol = Fluid(name="Ethanol", density=m_eth_density)
-pressurizing_gas_lox = Fluid(name="N2", density=6000000 * 0.028 / (8.314 * 178.15))
-pressurizing_gas_ethanol = Fluid(name="N2", density=6000000 * 0.028 / (8.314 * 293.15))
-pressurizing_gas = Fluid(name="N2", density=600)
-
+pressurizing_gas_lox = Fluid(name="Pressurizing gas lox ullage", density=m_pg_lox_tank_density)
+pressurizing_gas_ethanol = Fluid(name="Pressurizing gas eth ullage", density=m_pg_eth_tank_density)
+pressurizing_gas_lox_copv = Fluid(name="COPV lox gas", density=m_pg_lox_copv_density)
+pressurizing_gas_eth_copv = Fluid(name="COPV eth gas", density=m_pg_eth_copv_density)
 
 # ============================================================
 # Tanks: height derived from volume, radius, and cap selection.
@@ -1938,8 +1936,8 @@ pressure_tank_lox = MassBasedTank(
     liquid_mass=0,
     flux_time=t_end,
     gas_mass=copv_lox_mass,
-    gas=pressurizing_gas,
-    liquid=pressurizing_gas,
+    gas=pressurizing_gas_lox_copv,
+    liquid=pressurizing_gas_lox_copv,
 )
 
 pressure_tank_eth = MassBasedTank(
@@ -1948,8 +1946,8 @@ pressure_tank_eth = MassBasedTank(
     liquid_mass=0,
     flux_time=t_end,
     gas_mass=copv_eth_mass,
-    gas=pressurizing_gas,
-    liquid=pressurizing_gas,
+    gas=pressurizing_gas_eth_copv,
+    liquid=pressurizing_gas_eth_copv,
 )
 
 
@@ -2336,3 +2334,5 @@ else:
 
 # Open the first figure; use its Previous and Next buttons to browse all plots.
 FIGURE_NAVIGATOR.show_first_figure()
+
+print(f"ICI : {m_pg_eth_tank_density}")
