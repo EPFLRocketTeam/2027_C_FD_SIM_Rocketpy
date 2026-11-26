@@ -919,6 +919,7 @@ WIND_ALPHA = 0.15          # exposant de cisaillement (0.10 mer … 0.25 campagn
 WIND_Z_REF_M = 10.0        # hauteur de mesure de wind_base_speed
 WIND_H_CAP_M = 1000.0      # au-dessus (couche limite), la vitesse moyenne ne croît plus
 WIND_CORR_LENGTH_M = 1000.0  # longueur de corrélation verticale L des fluctuations
+WIND_WEIBULL_K = 2.0   # paramètre de forme (2 = Rayleigh ; ~1.5–2.5 selon le site)
 
 # Sensible default (± range %, step %) per variable — thrust/Isp typically
 # vary much less run-to-run than e.g. drag or wind.
@@ -962,6 +963,10 @@ def sample_wind_profile(wind_base_speed, gusty, grid, rng):
         h = float(np.clip(rng.normal(EKMAN_H_MEAN_M, EKMAN_H_STD_M), 100, 800))
         f_prev = None  # fluctuation relative du palier précédent
         alt_prev = None
+        # c calé pour que la moyenne de la Weibull soit wind_base_speed :
+        # E[v] = c * Gamma(1 + 1/k)
+        c = wind_base_speed / math.gamma(1.0 + 1.0 / WIND_WEIBULL_K)
+        v_ref_flight = float(c * rng.weibull(WIND_WEIBULL_K))
     for alt in WIND_GUST_ALTITUDES:
         if gusty:
             # Fluctuation relative f, corrélée avec le palier du dessous
@@ -975,7 +980,7 @@ def sample_wind_profile(wind_base_speed, gusty, grid, rng):
 
             # Vitesse moyenne : loi de puissance, plafonnée à H, plancher à Z_REF
             z_eff = min(max(alt, WIND_Z_REF_M), WIND_H_CAP_M)
-            mean_speed = wind_base_speed * (z_eff / WIND_Z_REF_M) ** WIND_ALPHA
+            mean_speed = v_ref_flight * (z_eff / WIND_Z_REF_M) ** WIND_ALPHA
             speed = max(mean_speed * (1.0 + f), 0.0)
 
             rotation = rot_total * (1.0 - math.exp(-alt / h))
