@@ -924,6 +924,10 @@ m_ox_total = m_ox_boil_off + m_ox_prechill + m_ox_ignition + free_ox + m_ox_unus
 # Two identical COPVs
 m_pg_copv = m_pg
 
+# Calculate density of pressurizing gas in the copv for physical coherence
+m_pg_lox_copv_density = m_pg_copv / copv_volume
+m_pg_eth_copv_density = m_pg_copv / copv_volume
+
 
 m_wet = m_dry + m_fuel_total + m_ox_total + 2.0 * m_pg_copv
 
