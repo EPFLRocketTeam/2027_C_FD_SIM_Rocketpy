@@ -2000,7 +2000,7 @@ if not np.isclose(
 # ============================================================
 # Rocket
 # ============================================================
-firehorn2 = Rocket(
+rocket_sim = Rocket(
     radius=r_rocket,
     mass=m_dry,
     inertia=(Ix, Iy, Iz),
@@ -2011,22 +2011,22 @@ firehorn2 = Rocket(
 )
 
 
-firehorn2.add_cm_eccentricity(x=0, y=y_cm)
-firehorn2.add_motor(motor=B3, position=0)
+rocket_sim.add_cm_eccentricity(x=0, y=y_cm)
+rocket_sim.add_motor(motor=B3, position=0)
 
-firehorn2.set_rail_buttons(
+rocket_sim.set_rail_buttons(
     lower_button_position=pos_inf_rb,
     upper_button_position=pos_sup_rb,
 )
 
-firehorn2.add_nose(
+rocket_sim.add_nose(
     length=l_nosecone,
     kind="powerseries",
     power=0.5,
     position=Nosecone.z + l_nosecone,
 )
 
-firehorn2.add_trapezoidal_fins(
+rocket_sim.add_trapezoidal_fins(
     n=int(n_fins),
     span=env_fins,
     root_chord=rc_fins,
@@ -2036,14 +2036,14 @@ firehorn2.add_trapezoidal_fins(
     sweep_length=sweep_l_fins,
 )
 
-firehorn2.add_tail(
+rocket_sim.add_tail(
     top_radius=top_r_bt,
     bottom_radius=bottom_r_bt,
     length=l_bt,
     position=Boattail.length,
 )
 
-firehorn2.add_parachute(
+rocket_sim.add_parachute(
     name="reefed",
     cd_s=drag_coeff_para_reefed,
     trigger="apogee",
@@ -2052,7 +2052,7 @@ firehorn2.add_parachute(
     noise=(0, 0, 0),
 )
 
-firehorn2.add_parachute(
+rocket_sim.add_parachute(
     name="unreefed",
     cd_s=drag_coeff_para_unreefed,
     trigger=trig_alt_para,
@@ -2061,14 +2061,14 @@ firehorn2.add_parachute(
     noise=(0, 0, 0),
 )
 
-capture_rocketpy_figure(firehorn2.draw)
+capture_rocketpy_figure(rocket_sim.draw)
 
 
 # ============================================================
 # Flight
 # ============================================================
 flight = Flight(
-    rocket=firehorn2,
+    rocket=rocket_sim,
     rail_length=l_rail,
     environment=env,
     inclination=inclination_rail,
@@ -2104,7 +2104,7 @@ if not save_files:
 # Outputs controlled by the output_* options in the Excel Parameters sheet.
 # ============================================================
 
-# firehorn2.draw()
+# rocket_sim.draw()
 
 print("\n========== FLIGHT SUMMARY ==========")
 print(f"Impulse (nominale, hold-down inclus): {nominal_total_impulse} [Ns]")
@@ -2132,7 +2132,7 @@ print(f"    Wet mass: {m_wet:.2f} [kg]")
 print(f"    Length: {((Nosecone.z + l_nosecone) * 1e3):.2f} [mm]")
 print(f"    Diameter: {(r_rocket * 2 * 1e3):.2f} [mm]")
 print(f"    Position CG (from tip): {((L_rocket - z_cm) * 1e3):.2f} [mm]")
-print(f"    Position CP (from tip): {((L_rocket - firehorn2.cp_position(0)) * 1e3):.2f} [mm]")
+print(f"    Position CP (from tip): {((L_rocket - rocket_sim.cp_position(0)) * 1e3):.2f} [mm]")
 print(f"    Stability margin (off rail): {flight.out_of_rail_stability_margin:.2f}")
 print(f"    Velocity off the rail: {flight.out_of_rail_velocity:.2f} [m/s]")
 print(f"    Max. acceleration: {(flight.max_acceleration/9.81):.2f} [G]")
@@ -2262,8 +2262,8 @@ if write_to_file:
         # as a function of Mach rather than time,so we evaluate it with
         # the instantaneous Mach to obtain cp(t).
         mach_t = np.array([flight.mach_number(t) for t in t_plot])
-        cp_position = np.array([firehorn2.cp_position(m) for m in mach_t])
-        cg_position = np.array([firehorn2.center_of_mass(t) for t in t_plot])
+        cp_position = np.array([rocket_sim.cp_position(m) for m in mach_t])
+        cg_position = np.array([rocket_sim.center_of_mass(t) for t in t_plot])
         plt.figure(figsize=(9, 5))
         plt.plot(
             t_plot, cp_position, color="darkviolet", label="Center of Pressure (CP)"
