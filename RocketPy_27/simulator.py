@@ -2340,4 +2340,3 @@ else:
 # Open the first figure; use its Previous and Next buttons to browse all plots.
 FIGURE_NAVIGATOR.show_first_figure()
 
-print(f"ICI : {m_pg_eth_tank_density}")
