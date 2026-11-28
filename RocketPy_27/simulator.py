@@ -170,6 +170,9 @@ except NameError:
 DATA_DIR = os.path.dirname(os.path.abspath(FILE)) or "."
 os.makedirs(DATA_DIR, exist_ok=True)
 
+RESULTS_DIR = os.path.join(DATA_DIR, "results")
+os.makedirs(RESULTS_DIR, exist_ok=True)
+
 struct = read_structure(FILE)
 prop = read_propellant(FILE)
 params = read_parameters(FILE)
@@ -1617,7 +1620,7 @@ fig.tight_layout()
 if write_to_file and output_thrust_curve:
     fig.savefig(
         os.path.join(
-            DATA_DIR,
+            RESULTS_DIR,
             f"{version}_thrust_curve.png",
         ),
         dpi=150,
@@ -1636,7 +1639,7 @@ else:
 # ------------------------------------------------------------
 
 eng_filename = os.path.join(
-    DATA_DIR,
+    RESULTS_DIR,
     f"B3_{version}.eng",
 )
 
@@ -1698,12 +1701,12 @@ def write_ullage_csv(
 
 
 ethanol_csv_path = os.path.join(
-    DATA_DIR,
+    RESULTS_DIR,
     f"ethanol_ullage_data_{version}.csv",
 )
 
 lox_csv_path = os.path.join(
-    DATA_DIR,
+    RESULTS_DIR,
     f"lox_ullage_data_{version}.csv",
 )
 
@@ -1769,12 +1772,12 @@ if np.any(m_copv_eth_vs_time < 0.0):
 
 
 copv_lox_csv_path = os.path.join(
-    DATA_DIR,
+    RESULTS_DIR,
     f"copv_lox_mass_vs_time_{version}.csv",
 )
 
 copv_eth_csv_path = os.path.join(
-    DATA_DIR,
+    RESULTS_DIR,
     f"copv_eth_mass_vs_time_{version}.csv",
 )
 
@@ -2235,7 +2238,7 @@ if write_to_file:
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"euler_angles_{version}.png"),
+            os.path.join(RESULTS_DIR, f"euler_angles_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -2251,7 +2254,7 @@ if write_to_file:
         plt.title("Stability Margin vs Time")
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"stability_margin_{version}.png"),
+            os.path.join(RESULTS_DIR, f"stability_margin_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -2281,7 +2284,7 @@ if write_to_file:
         plt.legend()
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"center_of_pressure_{version}.png"),
+            os.path.join(RESULTS_DIR, f"center_of_pressure_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -2296,7 +2299,7 @@ if write_to_file:
         plt.title("Altitude vs Time")
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"trajectory_{version}.png"),
+            os.path.join(RESULTS_DIR, f"trajectory_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -2311,7 +2314,7 @@ if write_to_file:
         plt.title("Speed vs Time")
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"velocity_{version}.png"),
+            os.path.join(RESULTS_DIR, f"velocity_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
@@ -2326,7 +2329,7 @@ if write_to_file:
         plt.title("Acceleration vs Time")
         plt.grid(True, alpha=0.3)
         plt.savefig(
-            os.path.join(DATA_DIR, f"acceleration_{version}.png"),
+            os.path.join(RESULTS_DIR, f"acceleration_{version}.png"),
             dpi=150,
             bbox_inches="tight",
         )
