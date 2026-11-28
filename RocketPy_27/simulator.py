@@ -18,7 +18,7 @@ it.
 #
 # Example: create a directory named "v1" containing a copy of the template,
 # rename it to "v1.xlsx", and set FILE = "v1/v1.xlsx" below.
-FILE = "TEMPLATE_SIM/TEMPLATE_SIM.xlsx"  # CHANGE : path to your working Excel file.
+FILE = "simu.xlsx"  # CHANGE : path to your working Excel file.
 
 
 # ============================================================
@@ -2339,5 +2339,3 @@ else:
 
 # Open the first figure; use its Previous and Next buttons to browse all plots.
 FIGURE_NAVIGATOR.show_first_figure()
-
-print(f"ICI : {m_pg_eth_tank_density}")
